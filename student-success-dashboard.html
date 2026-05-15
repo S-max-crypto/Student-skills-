@@ -1,0 +1,807 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Student Success Box — Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;600;700;800&family=Nunito:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --blue: #1565C0; --blue-dark: #0D47A1; --blue-light: #42A5F5;
+  --orange: #FF6D00; --orange-light: #FF9100; --yellow: #FFD600;
+  --green: #00C853; --red: #F44336; --purple: #7C4DFF;
+  --bg: #F0F4FF; --card: #FFFFFF; --text: #1A237E; --muted: #5C6BC0;
+  --shadow: 0 4px 20px rgba(21,101,192,0.12);
+  --radius: 18px;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:'Nunito',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; }
+
+/* ── ROLE SWITCHER ── */
+.role-bar {
+  background: var(--blue-dark); padding:10px 24px;
+  display:flex; align-items:center; gap:12px; justify-content:center;
+  position:sticky; top:0; z-index:200;
+}
+.role-bar span { color:rgba(255,255,255,0.7); font-size:0.85rem; font-weight:600; }
+.role-btn {
+  padding:7px 20px; border-radius:50px; border:2px solid rgba(255,255,255,0.3);
+  background:transparent; color:white; cursor:pointer;
+  font-family:'Nunito',sans-serif; font-weight:700; font-size:0.85rem;
+  transition:all 0.2s;
+}
+.role-btn.active { background:var(--orange); border-color:var(--orange); }
+.role-btn:hover:not(.active) { border-color:white; }
+
+/* ── LAYOUT ── */
+.app { display:flex; min-height:calc(100vh - 46px); }
+.sidebar {
+  width:240px; background:var(--blue-dark); flex-shrink:0;
+  display:flex; flex-direction:column; padding:24px 0;
+  position:sticky; top:46px; height:calc(100vh - 46px);
+}
+.sidebar-logo {
+  font-family:'Baloo 2',cursive; font-size:1.4rem; font-weight:800;
+  color:white; padding:0 24px 24px; border-bottom:1px solid rgba(255,255,255,0.1);
+}
+.sidebar-logo span { color:var(--yellow); }
+.sidebar-nav { padding:16px 0; flex:1; overflow-y:auto; }
+.nav-item {
+  display:flex; align-items:center; gap:12px;
+  padding:12px 24px; color:rgba(255,255,255,0.7);
+  cursor:pointer; transition:all 0.2s; font-weight:600; font-size:0.9rem;
+  border-left:3px solid transparent;
+}
+.nav-item:hover { background:rgba(255,255,255,0.08); color:white; }
+.nav-item.active { background:rgba(255,109,0,0.2); color:var(--orange-light); border-left-color:var(--orange); }
+.nav-icon { font-size:1.2rem; width:24px; text-align:center; }
+.sidebar-user {
+  padding:16px 24px; border-top:1px solid rgba(255,255,255,0.1);
+  display:flex; align-items:center; gap:12px;
+}
+.user-avatar {
+  width:40px; height:40px; border-radius:50%;
+  background:linear-gradient(135deg,var(--orange),var(--yellow));
+  display:flex; align-items:center; justify-content:center;
+  font-size:1.1rem; font-weight:800; color:white;
+  font-family:'Baloo 2',cursive;
+}
+.user-info .name { color:white; font-weight:700; font-size:0.9rem; }
+.user-info .role { color:rgba(255,255,255,0.5); font-size:0.75rem; }
+
+/* ── MAIN ── */
+.main { flex:1; overflow-y:auto; }
+.topbar {
+  background:white; padding:16px 28px;
+  display:flex; align-items:center; justify-content:space-between;
+  box-shadow:0 2px 10px rgba(0,0,0,0.06); position:sticky; top:0; z-index:10;
+}
+.topbar-title { font-family:'Baloo 2',cursive; font-size:1.3rem; font-weight:800; color:var(--text); }
+.topbar-right { display:flex; align-items:center; gap:16px; }
+.streak-badge {
+  display:flex; align-items:center; gap:6px;
+  background:linear-gradient(135deg,#FF6D00,#FFD600);
+  padding:7px 16px; border-radius:50px; color:white; font-weight:800; font-size:0.85rem;
+}
+.notif-btn {
+  width:38px; height:38px; border-radius:50%; border:none;
+  background:var(--bg); cursor:pointer; font-size:1.1rem;
+  display:flex; align-items:center; justify-content:center;
+  position:relative;
+}
+.notif-dot {
+  position:absolute; top:6px; right:6px;
+  width:8px; height:8px; border-radius:50%; background:var(--red);
+}
+
+.content { padding:28px; }
+
+/* ── PANELS ── */
+.panel { display:none; animation:fadeIn 0.3s ease; }
+.panel.active { display:block; }
+@keyframes fadeIn { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+
+/* ── CARDS ── */
+.card {
+  background:var(--card); border-radius:var(--radius);
+  box-shadow:var(--shadow); padding:24px;
+}
+.card-title {
+  font-family:'Baloo 2',cursive; font-size:1rem; font-weight:700;
+  color:var(--text); margin-bottom:18px;
+  display:flex; align-items:center; gap:8px;
+}
+
+/* ── STAT CARDS ── */
+.stats-row { display:grid; grid-template-columns:repeat(4,1fr); gap:18px; margin-bottom:24px; }
+.stat-card {
+  background:var(--card); border-radius:var(--radius); padding:22px;
+  box-shadow:var(--shadow); position:relative; overflow:hidden;
+  transition:transform 0.2s;
+}
+.stat-card:hover { transform:translateY(-3px); }
+.stat-card::before {
+  content:''; position:absolute; top:0; left:0; right:0; height:4px;
+}
+.stat-card.blue::before { background:var(--blue); }
+.stat-card.orange::before { background:var(--orange); }
+.stat-card.green::before { background:var(--green); }
+.stat-card.purple::before { background:var(--purple); }
+.stat-icon { font-size:2rem; margin-bottom:8px; }
+.stat-val {
+  font-family:'Baloo 2',cursive; font-size:2rem; font-weight:800;
+  color:var(--text); line-height:1;
+}
+.stat-label { font-size:0.82rem; color:var(--muted); margin-top:4px; font-weight:600; }
+
+/* ── PROGRESS ── */
+.progress-bar { background:#E8EAF6; border-radius:50px; height:10px; overflow:hidden; margin:8px 0; }
+.progress-fill { height:100%; border-radius:50px; transition:width 1s ease; }
+.progress-fill.blue { background:linear-gradient(90deg,var(--blue),var(--blue-light)); }
+.progress-fill.orange { background:linear-gradient(90deg,var(--orange),var(--yellow)); }
+.progress-fill.green { background:linear-gradient(90deg,#00C853,#69F0AE); }
+
+/* ── TASKS ── */
+.task-item {
+  display:flex; align-items:center; gap:14px;
+  padding:14px 0; border-bottom:1px solid #F0F4FF;
+}
+.task-item:last-child { border-bottom:none; }
+.task-check {
+  width:28px; height:28px; border-radius:50%; border:3px solid #E0E0E0;
+  display:flex; align-items:center; justify-content:center;
+  cursor:pointer; transition:all 0.3s; flex-shrink:0; font-size:0.9rem;
+}
+.task-check.done { background:var(--green); border-color:var(--green); color:white; }
+.task-check.pending { border-color:var(--orange); }
+.task-info { flex:1; }
+.task-name { font-weight:700; font-size:0.92rem; color:var(--text); }
+.task-sub { font-size:0.78rem; color:var(--muted); margin-top:2px; }
+.task-pts {
+  background:linear-gradient(135deg,var(--orange),var(--yellow));
+  color:white; padding:4px 12px; border-radius:50px;
+  font-size:0.78rem; font-weight:800;
+}
+
+/* ── BADGES ── */
+.badges-row { display:flex; gap:16px; flex-wrap:wrap; }
+.badge-item { text-align:center; }
+.badge-circle {
+  width:64px; height:64px; border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  font-size:1.8rem; margin:0 auto 6px;
+  position:relative; box-shadow:0 4px 12px rgba(0,0,0,0.15);
+}
+.badge-circle.gold { background:linear-gradient(135deg,#FFD600,#FF6D00); }
+.badge-circle.silver { background:linear-gradient(135deg,#B0BEC5,#78909C); }
+.badge-circle.bronze { background:linear-gradient(135deg,#D7894A,#8D5524); }
+.badge-circle.locked { background:#E0E0E0; filter:grayscale(1); opacity:0.5; }
+.badge-name { font-size:0.72rem; font-weight:700; color:var(--muted); }
+
+/* ── LEADERBOARD ── */
+.leader-item {
+  display:flex; align-items:center; gap:14px;
+  padding:12px 0; border-bottom:1px solid #F0F4FF;
+}
+.leader-item:last-child { border-bottom:none; }
+.leader-rank {
+  width:32px; height:32px; border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  font-weight:800; font-size:0.9rem; flex-shrink:0;
+}
+.leader-rank.r1 { background:linear-gradient(135deg,#FFD600,#FF6D00); color:white; }
+.leader-rank.r2 { background:linear-gradient(135deg,#B0BEC5,#78909C); color:white; }
+.leader-rank.r3 { background:linear-gradient(135deg,#D7894A,#8D5524); color:white; }
+.leader-rank.rn { background:#E8EAF6; color:var(--muted); }
+.leader-name { flex:1; font-weight:700; font-size:0.9rem; }
+.leader-pts { font-family:'Baloo 2',cursive; font-weight:800; color:var(--orange); }
+
+/* ── GRID LAYOUTS ── */
+.grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
+.grid-3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:20px; }
+.mb { margin-bottom:20px; }
+
+/* ── VIDEO CARD ── */
+.video-card {
+  border-radius:14px; overflow:hidden;
+  background:var(--card); box-shadow:var(--shadow); cursor:pointer;
+  transition:transform 0.2s;
+}
+.video-card:hover { transform:translateY(-4px); }
+.video-thumb {
+  height:120px;
+  display:flex; align-items:center; justify-content:center;
+  font-size:3rem; position:relative;
+}
+.video-thumb.day1 { background:linear-gradient(135deg,#1565C0,#42A5F5); }
+.video-thumb.day2 { background:linear-gradient(135deg,#FF6D00,#FFD600); }
+.video-thumb.day3 { background:linear-gradient(135deg,#7C4DFF,#E040FB); }
+.play-btn {
+  position:absolute; width:44px; height:44px; border-radius:50%;
+  background:rgba(255,255,255,0.9); display:flex; align-items:center;
+  justify-content:center; font-size:1.1rem; color:var(--blue);
+}
+.video-info { padding:14px; }
+.video-title { font-weight:700; font-size:0.88rem; color:var(--text); }
+.video-meta { font-size:0.75rem; color:var(--muted); margin-top:4px; }
+
+/* ── LEVEL CARD ── */
+.level-card {
+  background:linear-gradient(135deg,var(--blue-dark),var(--blue));
+  border-radius:var(--radius); padding:24px; color:white;
+}
+.level-card h3 { font-family:'Baloo 2',cursive; font-size:1.1rem; margin-bottom:6px; }
+.level-name {
+  font-family:'Baloo 2',cursive; font-size:2rem; font-weight:800;
+  color:var(--yellow);
+}
+.level-progress { margin-top:16px; }
+.level-progress .lp-bar { background:rgba(255,255,255,0.2); border-radius:50px; height:12px; }
+.level-progress .lp-fill { background:linear-gradient(90deg,var(--yellow),var(--orange)); height:100%; border-radius:50px; width:65%; }
+.level-progress .lp-text { display:flex; justify-content:space-between; margin-top:6px; font-size:0.8rem; opacity:0.8; }
+
+/* ── PARENT CHILD CARD ── */
+.child-card {
+  background:linear-gradient(135deg,#E8F5E9,#F1F8E9);
+  border:2px solid #A5D6A7; border-radius:var(--radius); padding:20px;
+  display:flex; align-items:center; gap:16px; cursor:pointer;
+  transition:all 0.2s;
+}
+.child-card:hover { transform:translateY(-2px); box-shadow:var(--shadow); }
+.child-avatar {
+  width:56px; height:56px; border-radius:50%;
+  background:linear-gradient(135deg,var(--blue),var(--blue-light));
+  display:flex; align-items:center; justify-content:center;
+  font-size:1.5rem; font-weight:800; color:white; font-family:'Baloo 2',cursive;
+}
+.child-details { flex:1; }
+.child-name { font-family:'Baloo 2',cursive; font-size:1.1rem; font-weight:800; color:var(--text); }
+.child-class { font-size:0.8rem; color:var(--muted); margin-top:2px; }
+.child-stats { display:flex; gap:16px; margin-top:8px; }
+.child-stat { text-align:center; }
+.child-stat .cs-val { font-family:'Baloo 2',cursive; font-weight:800; color:var(--orange); font-size:1.1rem; }
+.child-stat .cs-key { font-size:0.7rem; color:var(--muted); }
+
+/* ── WEAK AREAS ── */
+.weak-item { margin-bottom:14px; }
+.weak-label { display:flex; justify-content:space-between; font-size:0.85rem; font-weight:700; margin-bottom:6px; }
+.weak-label span:last-child { color:var(--orange); }
+
+/* ── ADMIN STAT ── */
+.admin-stats { display:grid; grid-template-columns:repeat(4,1fr); gap:18px; margin-bottom:24px; }
+.admin-stat {
+  background:var(--card); border-radius:var(--radius); padding:22px;
+  box-shadow:var(--shadow); text-align:center;
+}
+.admin-stat .as-icon { font-size:2rem; margin-bottom:8px; }
+.admin-stat .as-val { font-family:'Baloo 2',cursive; font-size:2rem; font-weight:800; color:var(--text); }
+.admin-stat .as-label { font-size:0.8rem; color:var(--muted); font-weight:600; }
+
+/* ── TABLE ── */
+.table-wrap { overflow-x:auto; }
+table { width:100%; border-collapse:collapse; }
+th { background:#F0F4FF; padding:12px 16px; text-align:left; font-size:0.82rem; font-weight:800; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px; }
+td { padding:12px 16px; font-size:0.88rem; border-bottom:1px solid #F0F4FF; }
+tr:last-child td { border-bottom:none; }
+.status-badge {
+  padding:4px 12px; border-radius:50px; font-size:0.75rem; font-weight:700;
+}
+.status-badge.delivered { background:#E8F5E9; color:#2E7D32; }
+.status-badge.pending { background:#FFF3E0; color:#E65100; }
+.status-badge.processing { background:#E8EAF6; color:#3949AB; }
+
+/* ── CHART BAR ── */
+.mini-chart { display:flex; align-items:flex-end; gap:8px; height:80px; }
+.bar-wrap { flex:1; display:flex; flex-direction:column; align-items:center; gap:4px; }
+.bar { width:100%; border-radius:8px 8px 0 0; transition:height 0.5s ease; }
+.bar-label { font-size:0.7rem; color:var(--muted); font-weight:700; }
+
+/* ── RESPONSIVE ── */
+@media(max-width:900px) {
+  .sidebar { display:none; }
+  .stats-row { grid-template-columns:repeat(2,1fr); }
+  .admin-stats { grid-template-columns:repeat(2,1fr); }
+  .grid-2, .grid-3 { grid-template-columns:1fr; }
+}
+
+/* ── CHIP TAG ── */
+.chip { display:inline-block; padding:3px 10px; border-radius:50px; font-size:0.75rem; font-weight:700; }
+.chip.blue { background:#E3F2FD; color:var(--blue); }
+.chip.orange { background:#FFF3E0; color:var(--orange); }
+.chip.green { background:#E8F5E9; color:#2E7D32; }
+
+/* ── CALENDAR ── */
+.cal-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:6px; }
+.cal-day { text-align:center; padding:8px 4px; border-radius:10px; font-size:0.8rem; font-weight:700; }
+.cal-day.header { color:var(--muted); font-size:0.72rem; background:transparent; }
+.cal-day.done { background:var(--green); color:white; }
+.cal-day.today { background:var(--orange); color:white; }
+.cal-day.empty { background:#F0F4FF; color:#B0BEC5; }
+.cal-day.future { background:transparent; color:#B0BEC5; }
+
+/* ── ANNOUNCEMENT ── */
+.announce {
+  background:linear-gradient(135deg,var(--orange),var(--yellow));
+  border-radius:var(--radius); padding:20px 24px;
+  display:flex; align-items:center; gap:16px; color:white; margin-bottom:20px;
+}
+.announce-icon { font-size:2rem; }
+.announce h4 { font-family:'Baloo 2',cursive; font-size:1rem; font-weight:800; }
+.announce p { font-size:0.82rem; opacity:0.9; margin-top:2px; }
+</style>
+</head>
+<body>
+
+<!-- ROLE SWITCHER -->
+<div class="role-bar">
+  <span>👀 Dashboard dekho:</span>
+  <button class="role-btn active" onclick="switchRole('student')">🎓 Student</button>
+  <button class="role-btn" onclick="switchRole('parent')">👨‍👩‍👧 Parent</button>
+  <button class="role-btn" onclick="switchRole('admin')">⚙️ Admin</button>
+</div>
+
+<div class="app">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">Student<span>Success</span></div>
+    <nav class="sidebar-nav" id="sidebar-nav"></nav>
+    <div class="sidebar-user">
+      <div class="user-avatar" id="user-avatar">A</div>
+      <div class="user-info">
+        <div class="name" id="user-name">Arjun</div>
+        <div class="role" id="user-role">Class 5 • Level 1</div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="main">
+    <div class="topbar">
+      <div class="topbar-title" id="topbar-title">🏠 Dashboard</div>
+      <div class="topbar-right">
+        <div class="streak-badge">🔥 7 Days Streak!</div>
+        <button class="notif-btn">🔔<div class="notif-dot"></div></button>
+      </div>
+    </div>
+    <div class="content" id="main-content"></div>
+  </div>
+</div>
+
+<script>
+const roles = {
+  student: {
+    avatar: 'A', name: 'Arjun', role: 'Class 5 • Level 1',
+    nav: [
+      {icon:'🏠', label:'Dashboard', id:'home'},
+      {icon:'📋', label:'Aaj Ka Task', id:'tasks'},
+      {icon:'🎥', label:'Videos', id:'videos'},
+      {icon:'🏆', label:'Badges & Points', id:'badges'},
+      {icon:'📅', label:'Calendar', id:'calendar'},
+      {icon:'📊', label:'My Progress', id:'progress'},
+      {icon:'❓', label:'Doubt Poocho', id:'doubt'},
+    ]
+  },
+  parent: {
+    avatar: 'P', name: 'Papa/Mama', role: 'Parent Account',
+    nav: [
+      {icon:'🏠', label:'Dashboard', id:'home'},
+      {icon:'👦', label:'Mera Baccha', id:'child'},
+      {icon:'📊', label:'Progress Report', id:'progress'},
+      {icon:'⚠️', label:'Weak Areas', id:'weak'},
+      {icon:'📅', label:'Activity Log', id:'activity'},
+      {icon:'🔔', label:'Notifications', id:'notif'},
+      {icon:'💬', label:'Teacher Se Baat', id:'chat'},
+    ]
+  },
+  admin: {
+    avatar: 'AD', name: 'Admin', role: 'Admin Panel',
+    nav: [
+      {icon:'🏠', label:'Dashboard', id:'home'},
+      {icon:'📦', label:'Orders', id:'orders'},
+      {icon:'👩‍🎓', label:'Students', id:'students'},
+      {icon:'📹', label:'Videos', id:'videos'},
+      {icon:'📊', label:'Reports', id:'reports'},
+      {icon:'⚙️', label:'Settings', id:'settings'},
+      {icon:'🚪', label:'Logout', id:'logout'},
+    ]
+  }
+};
+
+const panels = {
+  student: {
+    home: () => `
+      <div class="announce">
+        <div class="announce-icon">🎉</div>
+        <div><h4>Waah Arjun! 7 Days Streak Complete!</h4><p>Aaj bhi task complete karo aur 50 bonus points jito!</p></div>
+      </div>
+      <div class="stats-row">
+        <div class="stat-card blue"><div class="stat-icon">⭐</div><div class="stat-val">1250</div><div class="stat-label">Total Points</div></div>
+        <div class="stat-card orange"><div class="stat-icon">✅</div><div class="stat-val">12</div><div class="stat-label">Tasks Done</div></div>
+        <div class="stat-card green"><div class="stat-icon">🏅</div><div class="stat-val">4</div><div class="stat-label">Badges Mili</div></div>
+        <div class="stat-card purple"><div class="stat-icon">🎯</div><div class="stat-val">75%</div><div class="stat-label">Progress</div></div>
+      </div>
+      <div class="grid-2 mb">
+        <div class="card">
+          <div class="card-title">📋 Aaj Ka Task — Day 8</div>
+          <div class="task-item">
+            <div class="task-check done">✓</div>
+            <div class="task-info"><div class="task-name">📖 10 min Reading</div><div class="task-sub">Completed • 8:30 AM</div></div>
+            <div class="task-pts">+20 pts</div>
+          </div>
+          <div class="task-item">
+            <div class="task-check done">✓</div>
+            <div class="task-info"><div class="task-name">📝 5 English Words</div><div class="task-sub">Completed • 9:15 AM</div></div>
+            <div class="task-pts">+15 pts</div>
+          </div>
+          <div class="task-item">
+            <div class="task-check pending" onclick="this.classList.toggle('done');this.innerHTML=this.classList.contains('done')?'✓':''">
+            </div>
+            <div class="task-info"><div class="task-name">🎯 1 Goal Likho</div><div class="task-sub">Abhi baaki hai!</div></div>
+            <div class="task-pts">+15 pts</div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">📈 Is Hafte Ki Progress</div>
+          <div style="margin-bottom:14px">
+            <div style="display:flex;justify-content:space-between;font-size:0.85rem;font-weight:700;margin-bottom:6px"><span>Reading</span><span style="color:var(--green)">90%</span></div>
+            <div class="progress-bar"><div class="progress-fill green" style="width:90%"></div></div>
+          </div>
+          <div style="margin-bottom:14px">
+            <div style="display:flex;justify-content:space-between;font-size:0.85rem;font-weight:700;margin-bottom:6px"><span>Writing</span><span style="color:var(--blue)">70%</span></div>
+            <div class="progress-bar"><div class="progress-fill blue" style="width:70%"></div></div>
+          </div>
+          <div style="margin-bottom:14px">
+            <div style="display:flex;justify-content:space-between;font-size:0.85rem;font-weight:700;margin-bottom:6px"><span>Speaking</span><span style="color:var(--orange)">55%</span></div>
+            <div class="progress-bar"><div class="progress-fill orange" style="width:55%"></div></div>
+          </div>
+          <div>
+            <div style="display:flex;justify-content:space-between;font-size:0.85rem;font-weight:700;margin-bottom:6px"><span>Listening</span><span style="color:var(--purple)">80%</span></div>
+            <div class="progress-bar"><div class="progress-fill blue" style="width:80%"></div></div>
+          </div>
+        </div>
+      </div>
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">🏆 Leaderboard — Top 5</div>
+          <div class="leader-item"><div class="leader-rank r1">1</div><div class="leader-name">🥇 Priya</div><div class="leader-pts">1480 pts</div></div>
+          <div class="leader-item"><div class="leader-rank r2">2</div><div class="leader-name">🥈 Arjun (Tum!)</div><div class="leader-pts">1250 pts</div></div>
+          <div class="leader-item"><div class="leader-rank r3">3</div><div class="leader-name">🥉 Kabir</div><div class="leader-pts">980 pts</div></div>
+          <div class="leader-item"><div class="leader-rank rn">4</div><div class="leader-name">Riya</div><div class="leader-pts">870 pts</div></div>
+          <div class="leader-item"><div class="leader-rank rn">5</div><div class="leader-name">Amit</div><div class="leader-pts">750 pts</div></div>
+        </div>
+        <div class="level-card">
+          <h3>Tumhara Level</h3>
+          <div class="level-name">⚡ Level 1 — Easy</div>
+          <p style="font-size:0.85rem;opacity:0.8;margin-top:8px">Level 2 ke liye 250 more points chahiye!</p>
+          <div class="level-progress" style="margin-top:20px">
+            <div class="lp-bar"><div class="lp-fill"></div></div>
+            <div class="lp-text"><span>1250 pts</span><span>Level 2: 1500 pts</span></div>
+          </div>
+          <div style="margin-top:20px;display:flex;gap:12px">
+            <div style="text-align:center">
+              <div style="font-family:'Baloo 2',cursive;font-size:1.5rem;font-weight:800;color:var(--yellow)">15</div>
+              <div style="font-size:0.75rem;opacity:0.8">Days Left</div>
+            </div>
+            <div style="text-align:center">
+              <div style="font-family:'Baloo 2',cursive;font-size:1.5rem;font-weight:800;color:var(--yellow)">3</div>
+              <div style="font-size:0.75rem;opacity:0.8">Tasks Today</div>
+            </div>
+            <div style="text-align:center">
+              <div style="font-family:'Baloo 2',cursive;font-size:1.5rem;font-weight:800;color:var(--yellow)">7🔥</div>
+              <div style="font-size:0.75rem;opacity:0.8">Day Streak</div>
+            </div>
+          </div>
+        </div>
+      </div>`,
+    tasks: () => `
+      <div class="card mb">
+        <div class="card-title">📋 Aaj Ka Task — Day 8 of 15</div>
+        <div class="progress-bar" style="margin-bottom:20px"><div class="progress-fill orange" style="width:53%"></div></div>
+        <div class="task-item"><div class="task-check done">✓</div><div class="task-info"><div class="task-name">📖 10 min Reading</div><div class="task-sub">Kahani padho aur 3 naye words likho • +20 pts</div></div><span class="chip green">Done ✓</span></div>
+        <div class="task-item"><div class="task-check done">✓</div><div class="task-info"><div class="task-name">📝 5 English Words</div><div class="task-sub">Dictionary se 5 words aur unke meanings • +15 pts</div></div><span class="chip green">Done ✓</span></div>
+        <div class="task-item"><div class="task-check pending" onclick="this.classList.toggle('done');this.textContent=this.classList.contains('done')?'✓':''"></div><div class="task-info"><div class="task-name">🎯 1 Goal Likho</div><div class="task-sub">Apna ek daily goal workbook mein likho • +15 pts</div></div><span class="chip orange">Baaki</span></div>
+        <div class="task-item"><div class="task-check pending" onclick="this.classList.toggle('done');this.textContent=this.classList.contains('done')?'✓':''"></div><div class="task-info"><div class="task-name">🎥 Video Dekho</div><div class="task-sub">Aaj ka lesson video dekho • +10 pts</div></div><span class="chip orange">Baaki</span></div>
+      </div>
+      <div class="card">
+        <div class="card-title">📸 Proof Submit Karo</div>
+        <p style="color:var(--muted);font-size:0.9rem;margin-bottom:16px">Task complete kiya? Photo ya voice note bhejo!</p>
+        <div style="display:flex;gap:12px">
+          <button style="flex:1;padding:14px;border-radius:12px;border:2px dashed #B0BEC5;background:var(--bg);cursor:pointer;font-family:'Nunito',sans-serif;font-size:0.9rem;font-weight:700;color:var(--muted)">📸 Photo Upload</button>
+          <button style="flex:1;padding:14px;border-radius:12px;border:2px dashed #B0BEC5;background:var(--bg);cursor:pointer;font-family:'Nunito',sans-serif;font-size:0.9rem;font-weight:700;color:var(--muted)">🎤 Voice Note</button>
+          <button onclick="alert('Waah! +50 Points mile! 🎉')" style="flex:1;padding:14px;border-radius:12px;border:none;background:linear-gradient(135deg,var(--orange),var(--yellow));color:white;cursor:pointer;font-family:'Nunito',sans-serif;font-size:0.9rem;font-weight:800">Submit ✓</button>
+        </div>
+      </div>`,
+    videos: () => `
+      <div class="card-title" style="font-family:'Baloo 2',cursive;font-size:1.1rem;font-weight:800;margin-bottom:20px">🎥 Video Lessons</div>
+      <div class="grid-3 mb">
+        <div class="video-card"><div class="video-thumb day1"><div class="play-btn">▶</div></div><div class="video-info"><div class="video-title">Day 1 — Reading Kaise Kare</div><div class="video-meta">10 min • ✅ Dekh liya</div></div></div>
+        <div class="video-card"><div class="video-thumb day2"><div class="play-btn">▶</div></div><div class="video-info"><div class="video-title">Day 2 — English Words Tips</div><div class="video-meta">8 min • ✅ Dekh liya</div></div></div>
+        <div class="video-card"><div class="video-thumb day3"><div class="play-btn">▶</div></div><div class="video-info"><div class="video-title">Day 3 — Goal Setting</div><div class="video-meta">12 min • 🔒 Unlock karo</div></div></div>
+      </div>`,
+    badges: () => `
+      <div class="card mb">
+        <div class="card-title">🏅 Tumhari Badges</div>
+        <div class="badges-row">
+          <div class="badge-item"><div class="badge-circle gold">⭐</div><div class="badge-name">First Task</div></div>
+          <div class="badge-item"><div class="badge-circle gold">🔥</div><div class="badge-name">5 Day Streak</div></div>
+          <div class="badge-item"><div class="badge-circle silver">📖</div><div class="badge-name">Reader</div></div>
+          <div class="badge-item"><div class="badge-circle bronze">✍️</div><div class="badge-name">Writer</div></div>
+          <div class="badge-item"><div class="badge-circle locked">🏆</div><div class="badge-name">Top Student</div></div>
+          <div class="badge-item"><div class="badge-circle locked">🚀</div><div class="badge-name">Level Up</div></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">⭐ Points History</div>
+        <div class="task-item"><div style="font-size:1.2rem">📖</div><div class="task-info"><div class="task-name">Reading Task Complete</div><div class="task-sub">Aaj • 8:30 AM</div></div><div class="task-pts">+20</div></div>
+        <div class="task-item"><div style="font-size:1.2rem">📝</div><div class="task-info"><div class="task-name">English Words</div><div class="task-sub">Aaj • 9:15 AM</div></div><div class="task-pts">+15</div></div>
+        <div class="task-item"><div style="font-size:1.2rem">🔥</div><div class="task-info"><div class="task-name">7 Day Streak Bonus</div><div class="task-sub">Kal</div></div><div class="task-pts">+50</div></div>
+      </div>`,
+    calendar: () => `
+      <div class="card">
+        <div class="card-title">📅 May 2024 — Activity Calendar</div>
+        <div class="cal-grid" style="margin-bottom:12px">
+          ${['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(d=>`<div class="cal-day header">${d}</div>`).join('')}
+          ${[...Array(3)].map(()=>'<div class="cal-day future"></div>').join('')}
+          ${[...Array(7)].map((_,i)=>`<div class="cal-day done">${i+1}</div>`).join('')}
+          ${[...Array(7)].map((_,i)=>`<div class="cal-day done">${i+8}</div>`).join('')}
+          ${'<div class="cal-day today">15</div>'}
+          ${[...Array(13)].map((_,i)=>`<div class="cal-day empty">${i+16}</div>`).join('')}
+          ${[...Array(4)].map((_,i)=>`<div class="cal-day future">${i+29}</div>`).join('')}
+        </div>
+        <div style="display:flex;gap:16px;font-size:0.8rem;font-weight:700">
+          <span>🟢 Done</span><span>🟠 Today</span><span>⬜ Baaki</span>
+        </div>
+      </div>`,
+    progress: () => `
+      <div class="stats-row">
+        <div class="stat-card blue"><div class="stat-icon">📅</div><div class="stat-val">12/16</div><div class="stat-label">Tasks Complete</div></div>
+        <div class="stat-card orange"><div class="stat-icon">⭐</div><div class="stat-val">1250</div><div class="stat-label">Total Points</div></div>
+        <div class="stat-card green"><div class="stat-icon">🔥</div><div class="stat-val">7</div><div class="stat-label">Day Streak</div></div>
+        <div class="stat-card purple"><div class="stat-icon">🏅</div><div class="stat-val">4</div><div class="stat-label">Badges</div></div>
+      </div>
+      <div class="card">
+        <div class="card-title">📊 Skill-wise Progress</div>
+        <div class="weak-item"><div class="weak-label"><span>Reading</span><span>90%</span></div><div class="progress-bar"><div class="progress-fill green" style="width:90%"></div></div></div>
+        <div class="weak-item"><div class="weak-label"><span>Writing</span><span>70%</span></div><div class="progress-bar"><div class="progress-fill blue" style="width:70%"></div></div></div>
+        <div class="weak-item"><div class="weak-label"><span>Speaking</span><span>55%</span></div><div class="progress-bar"><div class="progress-fill orange" style="width:55%"></div></div></div>
+        <div class="weak-item"><div class="weak-label"><span>Listening</span><span>80%</span></div><div class="progress-bar"><div class="progress-fill blue" style="width:80%"></div></div></div>
+      </div>`,
+    doubt: () => `
+      <div class="card">
+        <div class="card-title">❓ Doubt Poocho</div>
+        <p style="color:var(--muted);margin-bottom:16px;font-size:0.9rem">Koi bhi sawaal poocho — hum jawab denge!</p>
+        <textarea style="width:100%;padding:14px;border-radius:12px;border:2px solid #E8EAF6;font-family:'Nunito',sans-serif;font-size:0.9rem;resize:none;height:120px;outline:none" placeholder="Apna sawaal yahan likho..."></textarea>
+        <button onclick="alert('Sawaal bhej diya! 30 min mein jawab milega 📨')" style="margin-top:12px;padding:12px 28px;border-radius:50px;border:none;background:linear-gradient(135deg,var(--blue),var(--blue-light));color:white;font-family:'Nunito',sans-serif;font-weight:800;cursor:pointer;font-size:0.9rem">Sawaal Bhejo 📩</button>
+      </div>`
+  },
+  parent: {
+    home: () => `
+      <div class="stats-row">
+        <div class="stat-card blue"><div class="stat-icon">✅</div><div class="stat-val">12</div><div class="stat-label">Tasks Done</div></div>
+        <div class="stat-card orange"><div class="stat-icon">⭐</div><div class="stat-val">1250</div><div class="stat-label">Points Earned</div></div>
+        <div class="stat-card green"><div class="stat-icon">🔥</div><div class="stat-val">7</div><div class="stat-label">Day Streak</div></div>
+        <div class="stat-card purple"><div class="stat-icon">📊</div><div class="stat-val">75%</div><div class="stat-label">Overall Progress</div></div>
+      </div>
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">👦 Mera Baccha</div>
+          <div class="child-card">
+            <div class="child-avatar">A</div>
+            <div class="child-details">
+              <div class="child-name">Arjun Kumar</div>
+              <div class="child-class">Class 5 • Level 1 — Easy</div>
+              <div class="child-stats">
+                <div class="child-stat"><div class="cs-val">1250</div><div class="cs-key">Points</div></div>
+                <div class="child-stat"><div class="cs-val">12</div><div class="cs-key">Tasks</div></div>
+                <div class="child-stat"><div class="cs-val">4</div><div class="cs-key">Badges</div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">📅 Aaj Ki Activity</div>
+          <div class="task-item"><div style="font-size:1.1rem">✅</div><div class="task-info"><div class="task-name">Reading Task</div><div class="task-sub">8:30 AM • +20 pts</div></div><span class="chip green">Done</span></div>
+          <div class="task-item"><div style="font-size:1.1rem">✅</div><div class="task-info"><div class="task-name">English Words</div><div class="task-sub">9:15 AM • +15 pts</div></div><span class="chip green">Done</span></div>
+          <div class="task-item"><div style="font-size:1.1rem">⏳</div><div class="task-info"><div class="task-name">Goal Writing</div><div class="task-sub">Abhi baaki hai</div></div><span class="chip orange">Pending</span></div>
+        </div>
+      </div>`,
+    child: () => `
+      <div class="card mb">
+        <div class="card-title">👦 Arjun Ki Profile</div>
+        <div style="display:flex;align-items:center;gap:20px;padding:16px;background:var(--bg);border-radius:14px">
+          <div class="child-avatar" style="width:72px;height:72px;font-size:2rem">A</div>
+          <div>
+            <div style="font-family:'Baloo 2',cursive;font-size:1.4rem;font-weight:800">Arjun Kumar</div>
+            <div style="color:var(--muted);margin-top:4px">Class 5 • Level 1 — Easy</div>
+            <div style="display:flex;gap:8px;margin-top:8px">
+              <span class="chip blue">📖 Reader</span>
+              <span class="chip orange">🔥 7 Day Streak</span>
+              <span class="chip green">✅ Active</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">💪 Strong Areas</div>
+          <div class="weak-item"><div class="weak-label"><span>Reading</span><span style="color:var(--green)">90%</span></div><div class="progress-bar"><div class="progress-fill green" style="width:90%"></div></div></div>
+          <div class="weak-item"><div class="weak-label"><span>Listening</span><span style="color:var(--green)">80%</span></div><div class="progress-bar"><div class="progress-fill green" style="width:80%"></div></div></div>
+        </div>
+        <div class="card">
+          <div class="card-title">⚠️ Improve Karna Hai</div>
+          <div class="weak-item"><div class="weak-label"><span>Speaking</span><span style="color:var(--orange)">55%</span></div><div class="progress-bar"><div class="progress-fill orange" style="width:55%"></div></div></div>
+          <div class="weak-item"><div class="weak-label"><span>Writing</span><span style="color:var(--blue)">70%</span></div><div class="progress-bar"><div class="progress-fill blue" style="width:70%"></div></div></div>
+        </div>
+      </div>`,
+    progress: () => `
+      <div class="card mb">
+        <div class="card-title">📊 Weekly Performance Report</div>
+        <div class="mini-chart">
+          ${[['M',60,'var(--blue)'],['T',80,'var(--green)'],['W',45,'var(--orange)'],['Th',90,'var(--green)'],['F',75,'var(--blue)'],['Sa',85,'var(--green)'],['Su',70,'var(--purple)']].map(([d,h,c])=>`<div class="bar-wrap"><div class="bar" style="height:${h}%;background:${c};border-radius:8px 8px 0 0"></div><div class="bar-label">${d}</div></div>`).join('')}
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">📈 Overall Progress — 12/16 Tasks</div>
+        <div class="progress-bar" style="height:18px;margin-bottom:20px"><div class="progress-fill orange" style="width:75%"></div></div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;text-align:center">
+          <div><div style="font-family:'Baloo 2',cursive;font-size:1.8rem;font-weight:800;color:var(--green)">12</div><div style="font-size:0.8rem;color:var(--muted)">Tasks Done</div></div>
+          <div><div style="font-family:'Baloo 2',cursive;font-size:1.8rem;font-weight:800;color:var(--orange)">4</div><div style="font-size:0.8rem;color:var(--muted)">Remaining</div></div>
+          <div><div style="font-family:'Baloo 2',cursive;font-size:1.8rem;font-weight:800;color:var(--blue)">7</div><div style="font-size:0.8rem;color:var(--muted)">Day Streak</div></div>
+        </div>
+      </div>`,
+    weak: () => `
+      <div class="card">
+        <div class="card-title">⚠️ Weak Areas — Ghar Pe Practice Karwao</div>
+        <div class="weak-item"><div class="weak-label"><span>🗣️ Speaking</span><span style="color:var(--red)">55% — Practice Needed</span></div><div class="progress-bar"><div class="progress-fill orange" style="width:55%"></div></div><p style="font-size:0.82rem;color:var(--muted);margin-top:6px">💡 Tip: Roz 5 min ghar pe English mein baat karo</p></div>
+        <div class="weak-item" style="margin-top:16px"><div class="weak-label"><span>✍️ Writing</span><span style="color:var(--orange)">70% — Average</span></div><div class="progress-bar"><div class="progress-fill blue" style="width:70%"></div></div><p style="font-size:0.82rem;color:var(--muted);margin-top:6px">💡 Tip: Roz 1 page diary likhwao</p></div>
+      </div>`,
+    activity: () => `
+      <div class="card">
+        <div class="card-title">📅 Is Hafte Ki Activity</div>
+        ${['Mon: Reading ✅, Words ✅, Goal ✅ — 50 pts','Tue: Reading ✅, Words ✅ — 35 pts','Wed: Sab tasks ✅ — 50 pts + 50 bonus','Thu: Reading ✅, Words ✅, Goal ✅ — 50 pts','Fri: Reading ✅ only — 20 pts','Sat: Sab tasks ✅ — 50 pts','Sun: Abhi baaki'].map((t,i)=>`<div class="task-item"><div style="font-size:1rem">${['Mon','Tue','Wed','Thu','Fri','Sat','Sun'][i]}</div><div class="task-info"><div class="task-name">${t}</div></div></div>`).join('')}
+      </div>`,
+    notif: () => `
+      <div class="card">
+        <div class="card-title">🔔 Notifications</div>
+        <div class="task-item"><div style="font-size:1.3rem">🔥</div><div class="task-info"><div class="task-name">Arjun ne 7 Day Streak complete ki!</div><div class="task-sub">Aaj • 8:00 AM</div></div></div>
+        <div class="task-item"><div style="font-size:1.3rem">✅</div><div class="task-info"><div class="task-name">Aaj 2 tasks complete ho gaye</div><div class="task-sub">Aaj • 9:20 AM</div></div></div>
+        <div class="task-item"><div style="font-size:1.3rem">⚠️</div><div class="task-info"><div class="task-name">Speaking area mein practice ki zaroorat hai</div><div class="task-sub">Kal</div></div></div>
+      </div>`,
+    chat: () => `
+      <div class="card">
+        <div class="card-title">💬 Teacher Se Message Karo</div>
+        <div style="background:var(--bg);border-radius:12px;padding:16px;margin-bottom:16px;max-height:200px;overflow-y:auto">
+          <div style="margin-bottom:12px"><div style="font-size:0.75rem;color:var(--muted);margin-bottom:4px">Teacher • Kal</div><div style="background:var(--blue);color:white;padding:10px 14px;border-radius:12px 12px 12px 0;display:inline-block;font-size:0.88rem">Arjun bahut achha kar raha hai! Speaking pe thoda focus karein.</div></div>
+          <div style="text-align:right"><div style="font-size:0.75rem;color:var(--muted);margin-bottom:4px">Aap • Aaj</div><div style="background:var(--orange);color:white;padding:10px 14px;border-radius:12px 12px 0 12px;display:inline-block;font-size:0.88rem">Theek hai, hum ghar pe practice karenge!</div></div>
+        </div>
+        <div style="display:flex;gap:10px">
+          <input style="flex:1;padding:12px;border-radius:50px;border:2px solid #E8EAF6;font-family:'Nunito',sans-serif;outline:none" placeholder="Message likho...">
+          <button onclick="alert('Message bheja! 📨')" style="padding:12px 20px;border-radius:50px;border:none;background:var(--blue);color:white;font-weight:800;cursor:pointer">Send</button>
+        </div>
+      </div>`
+  },
+  admin: {
+    home: () => `
+      <div class="admin-stats">
+        <div class="admin-stat"><div class="as-icon">👩‍🎓</div><div class="as-val">1,250</div><div class="as-label">Total Students</div></div>
+        <div class="admin-stat"><div class="as-icon">📦</div><div class="as-val">320</div><div class="as-label">Total Orders</div></div>
+        <div class="admin-stat"><div class="as-icon">💰</div><div class="as-val">₹64K</div><div class="as-label">Revenue</div></div>
+        <div class="admin-stat"><div class="as-icon">✅</div><div class="as-val">850</div><div class="as-label">Active Users</div></div>
+      </div>
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">📦 Recent Orders</div>
+          <div class="table-wrap">
+            <table>
+              <tr><th>#</th><th>Name</th><th>Amount</th><th>Status</th></tr>
+              <tr><td>#1001</td><td>Rahul</td><td>₹299</td><td><span class="status-badge delivered">Delivered</span></td></tr>
+              <tr><td>#1002</td><td>Priya</td><td>₹299</td><td><span class="status-badge delivered">Delivered</span></td></tr>
+              <tr><td>#1003</td><td>Amit</td><td>₹299</td><td><span class="status-badge processing">Processing</span></td></tr>
+              <tr><td>#1004</td><td>Neha</td><td>₹299</td><td><span class="status-badge pending">Pending</span></td></tr>
+            </table>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">🏆 Top Products</div>
+          <div class="task-item"><div style="font-size:1.2rem">📦</div><div class="task-info"><div class="task-name">Student Success Box</div><div class="task-sub">Bestseller</div></div><div style="font-family:'Baloo 2',cursive;font-weight:800;color:var(--orange)">320</div></div>
+          <div class="task-item"><div style="font-size:1.2rem">📓</div><div class="task-info"><div class="task-name">Workbook</div></div><div style="font-family:'Baloo 2',cursive;font-weight:800;color:var(--orange)">280</div></div>
+          <div class="task-item"><div style="font-size:1.2rem">✏️</div><div class="task-info"><div class="task-name">Practice Copy</div></div><div style="font-family:'Baloo 2',cursive;font-weight:800;color:var(--orange)">250</div></div>
+        </div>
+      </div>`,
+    orders: () => `
+      <div class="card">
+        <div class="card-title">📦 Sare Orders</div>
+        <div class="table-wrap">
+          <table>
+            <tr><th>#</th><th>Student</th><th>Product</th><th>Amount</th><th>Date</th><th>Status</th></tr>
+            <tr><td>#1001</td><td>Rahul Sharma</td><td>Success Box</td><td>₹299</td><td>May 10</td><td><span class="status-badge delivered">Delivered</span></td></tr>
+            <tr><td>#1002</td><td>Priya Singh</td><td>Success Box</td><td>₹299</td><td>May 11</td><td><span class="status-badge delivered">Delivered</span></td></tr>
+            <tr><td>#1003</td><td>Amit Kumar</td><td>Success Box</td><td>₹299</td><td>May 12</td><td><span class="status-badge processing">Processing</span></td></tr>
+            <tr><td>#1004</td><td>Neha Gupta</td><td>Success Box</td><td>₹299</td><td>May 13</td><td><span class="status-badge pending">Pending</span></td></tr>
+            <tr><td>#1005</td><td>Riya Patel</td><td>Workbook</td><td>₹199</td><td>May 14</td><td><span class="status-badge delivered">Delivered</span></td></tr>
+          </table>
+        </div>
+      </div>`,
+    students: () => `
+      <div class="card">
+        <div class="card-title">👩‍🎓 All Students</div>
+        <div class="table-wrap">
+          <table>
+            <tr><th>Name</th><th>Class</th><th>Points</th><th>Streak</th><th>Status</th></tr>
+            <tr><td>Arjun Kumar</td><td>Class 5</td><td>1250</td><td>7🔥</td><td><span class="status-badge delivered">Active</span></td></tr>
+            <tr><td>Priya Singh</td><td>Class 7</td><td>1480</td><td>10🔥</td><td><span class="status-badge delivered">Active</span></td></tr>
+            <tr><td>Kabir Khan</td><td>Class 4</td><td>980</td><td>5🔥</td><td><span class="status-badge delivered">Active</span></td></tr>
+            <tr><td>Riya Sharma</td><td>Class 6</td><td>870</td><td>3🔥</td><td><span class="status-badge processing">Inactive</span></td></tr>
+          </table>
+        </div>
+      </div>`,
+    videos: () => `
+      <div class="card">
+        <div class="card-title">📹 Video Management</div>
+        <div class="task-item"><div style="font-size:1.3rem">🎥</div><div class="task-info"><div class="task-name">Day 1 — Reading Kaise Kare</div><div class="task-sub">10 min • 1250 views</div></div><span class="chip green">Live</span></div>
+        <div class="task-item"><div style="font-size:1.3rem">🎥</div><div class="task-info"><div class="task-name">Day 2 — English Words Tips</div><div class="task-sub">8 min • 980 views</div></div><span class="chip green">Live</span></div>
+        <div class="task-item"><div style="font-size:1.3rem">🎥</div><div class="task-info"><div class="task-name">Day 3 — Goal Setting</div><div class="task-sub">12 min • Upload pending</div></div><span class="chip orange">Draft</span></div>
+        <button onclick="alert('Video upload feature aayega! 🎥')" style="margin-top:16px;padding:12px 24px;border-radius:50px;border:none;background:var(--blue);color:white;font-weight:800;cursor:pointer;font-family:'Nunito',sans-serif">+ New Video Upload</button>
+      </div>`,
+    reports: () => `
+      <div class="admin-stats">
+        <div class="admin-stat"><div class="as-icon">📈</div><div class="as-val">68%</div><div class="as-label">Completion Rate</div></div>
+        <div class="admin-stat"><div class="as-icon">⭐</div><div class="as-val">4.8</div><div class="as-label">Avg Rating</div></div>
+        <div class="admin-stat"><div class="as-icon">🔁</div><div class="as-val">89%</div><div class="as-label">Retention</div></div>
+        <div class="admin-stat"><div class="as-icon">💬</div><div class="as-val">24</div><div class="as-label">Doubts Today</div></div>
+      </div>`,
+    settings: () => `
+      <div class="card">
+        <div class="card-title">⚙️ Settings</div>
+        <div class="task-item"><div style="font-size:1.3rem">🔔</div><div class="task-info"><div class="task-name">Notifications</div><div class="task-sub">Email + WhatsApp alerts</div></div><div style="width:44px;height:24px;border-radius:50px;background:var(--green);cursor:pointer"></div></div>
+        <div class="task-item"><div style="font-size:1.3rem">📧</div><div class="task-info"><div class="task-name">Email Reports</div><div class="task-sub">Weekly parent reports</div></div><div style="width:44px;height:24px;border-radius:50px;background:var(--green);cursor:pointer"></div></div>
+        <div class="task-item"><div style="font-size:1.3rem">💳</div><div class="task-info"><div class="task-name">Payment Gateway</div><div class="task-sub">Razorpay connected</div></div><span class="chip green">Active</span></div>
+      </div>`,
+    logout: () => `<div class="card" style="text-align:center;padding:60px"><div style="font-size:4rem">👋</div><div style="font-family:'Baloo 2',cursive;font-size:1.5rem;font-weight:800;margin:16px 0">Phir Milenge!</div><p style="color:var(--muted)">Admin panel se logout ho gaye</p></div>`
+  }
+};
+
+let currentRole = 'student';
+let currentPanel = 'home';
+
+function switchRole(role) {
+  currentRole = role;
+  currentPanel = 'home';
+  document.querySelectorAll('.role-btn').forEach(b => b.classList.remove('active'));
+  event.target.classList.add('active');
+  const r = roles[role];
+  document.getElementById('user-avatar').textContent = r.avatar;
+  document.getElementById('user-name').textContent = r.name;
+  document.getElementById('user-role').textContent = r.role;
+  renderNav();
+  renderPanel();
+}
+
+function renderNav() {
+  const nav = roles[currentRole].nav;
+  document.getElementById('sidebar-nav').innerHTML = nav.map(item => `
+    <div class="nav-item ${item.id === currentPanel ? 'active' : ''}" onclick="switchPanel('${item.id}')">
+      <span class="nav-icon">${item.icon}</span>${item.label}
+    </div>`).join('');
+}
+
+function switchPanel(id) {
+  currentPanel = id;
+  renderNav();
+  renderPanel();
+  const titles = {home:'🏠 Dashboard',tasks:'📋 Aaj Ka Task',videos:'🎥 Videos',badges:'🏆 Badges & Points',calendar:'📅 Calendar',progress:'📊 Progress',doubt:'❓ Doubt Poocho',child:'👦 Mera Baccha',weak:'⚠️ Weak Areas',activity:'📅 Activity Log',notif:'🔔 Notifications',chat:'💬 Teacher Se Baat',orders:'📦 Orders',students:'👩‍🎓 Students',reports:'📊 Reports',settings:'⚙️ Settings',logout:'🚪 Logout'};
+  document.getElementById('topbar-title').textContent = titles[id] || '🏠 Dashboard';
+}
+
+function renderPanel() {
+  const fn = panels[currentRole]?.[currentPanel];
+  document.getElementById('main-content').innerHTML = fn ? fn() : '<div class="card">Coming soon!</div>';
+}
+
+// Init
+renderNav();
+renderPanel();
+</script>
+</body>
+</html>
